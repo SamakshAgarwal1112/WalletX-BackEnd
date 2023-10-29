@@ -1,13 +1,37 @@
 const pool = require('../../Config');
 const queries = require('../../Queries');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const validator = require('validator');
 const handleSignUpError = (err) => {
-    if(err.constraint === 'unique_users_email'){
-        return {message: 'Email already exists'};
+    let errors = {username: '', email: '', password: ''};
+    if(err.constraint === 'users_email_key'){
+        errors.email = 'Email already registered';
     }else if(err.message === 'Password length must be greater than 6'){
-        return {message: 'Password length must be greater than 6'};
+       errors.password = err.message;
+    }else if(err.constraint === 'users_username_key'){
+        errors.username = 'Username already taken';
+    }else if(err.message === 'Invalid email format'){
+        errors.email = 'Enter a valid email';
     }
-    throw err;  //otherwise throw other unhandled errors.
+    return errors;  //otherwise throw other unhandled errors.
+}
+const handleLogInError = (err) => {
+    let errors = {username: '', password:''};
+    if(err.message === 'User not found'){
+        errors.username = err.message;
+    }else if(err.message === 'Invalid password'){
+        errors.password = err.message;
+    }
+    return errors;
+}
+const maxAge = 86400; // 3 days in seconds
+const createToken = (id) => {
+    return jwt.sign(
+        {id: id},
+        process.env.ACCESS_TOKEN_SECRET,
+        {expiresIn: maxAge,}
+    );
 }
 module.exports.fetch = async(req, resp) => {
     try{
@@ -38,21 +62,51 @@ module.exports.signUp = async (req, resp) => {
 
         // Check if the user already exists by username
         let result = await pool.query(queries.search, [username]);
-        if (result.rows.length > 0) {
-            return resp.status(401).json({ message: 'User already exists' });
-        }
         // Check password length
         if (password.length < 6) {
             throw new Error('Password length must be greater than 6');
+        }
+        //check if the email entered is valid or not:
+        if (!validator.isEmail(email)) {
+            throw new Error('Invalid email format');
         }
         // Hash the password using bcrypt + salt
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         // Insert the new user
         result = await pool.query(queries.signUp, [username, email, hashedPassword, watchlist_items]);
-        resp.json({ message: 'User signed up successfully', result: result.rows });
+        //User inserted, now jwt token generation
+        resp.json({ message: 'User signed up successfully', newUser: result.rows[0] });
     } catch (err) {
-        const error = handleSignUpError(err);
-        resp.status(500).json({ error: error.message });
+        const errors = handleSignUpError(err);
+        resp.status(500).send({errors});
     }
 };
+module.exports.logIn = async(req, resp) => {
+    try{
+        const {username, password} = req.body;
+        let result = await pool.query(queries.search, [username]);
+        if(result.rows.length === 0){
+            throw new Error('User not found');
+        }else{
+            const user = result.rows[0];
+            //compare the hashed password
+            const auth = await bcrypt.compare(password, user.password);
+            if(auth){
+                //generate jwt token
+                const token = createToken(user.user_id);
+                resp.cookie('jwt', token, { httpOnly: true, maxAge: maxAge * 1000 });// Set the cookie
+                resp.status(200).json({ message: 'User logged in successfully'});
+            }else{
+                throw new Error('Invalid password');
+            }
+        }
+    }catch(err){
+        const errors = handleLogInError(err);
+        resp.status(401).json({errors});
+    }
+}
+module.exports.logOut = (req, resp) => {
+    resp.cookie('jwt', "", {httpOnly: true, maxAge: -1});   //negative maxAge so that the cookie expires immediately
+    resp.send('User logged out successfully')
+}
