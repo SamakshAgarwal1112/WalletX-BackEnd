@@ -23,4 +23,12 @@ const connect = () => {
     };
 };
 connect();
+const { spawn } = require('child_process');
+
+// Running api.js file
+const apiProcess = spawn('node', ['api.js'], { stdio: 'inherit' });
+
+apiProcess.on('close', (code) => {
+  console.log(`API process exited with code ${code}`);
+});
 app.use(Auth);
