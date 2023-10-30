@@ -17,7 +17,6 @@
   },
   "homepage": "https://github.com/pred695/WalletX-BackEnd#readme",
   "dependencies": {
-    "axios": "^1.6.0",
     "bcrypt": "^5.1.1",
     "cookie": "^0.5.0",
     "cookie-parser": "^1.4.6",
