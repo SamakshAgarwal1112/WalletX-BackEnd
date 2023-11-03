@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const corsOptions = {
-    origin: 'https://localhost:5173', // Replace with your frontend origin
+    origin: 'http://localhost:5173', // Replace with your frontend origin
     credentials: true,
     exposedHeaders: ["set-cookie"],
   };
