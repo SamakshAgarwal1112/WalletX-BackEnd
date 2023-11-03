@@ -32,7 +32,7 @@ const createToken = (id) => {
         process.env.ACCESS_TOKEN_SECRET,
         {expiresIn: maxAge,}
     );
-}
+    };
 module.exports.fetch = async(req, resp) => {
     try{
         let result = await pool.query(queries.fetch);
@@ -92,11 +92,16 @@ module.exports.logIn = async(req, resp) => {
             const user = result.rows[0];
             //compare the hashed password
             const auth = await bcrypt.compare(password, user.password);
-            if(auth){
+            if (auth) {
                 //generate jwt token
                 const token = createToken(user.user_id);
-                resp.cookie('jwt', token, { httpOnly: true, maxAge: maxAge * 1000 });// Set the cookie
-                resp.status(200).json({ message: 'User logged in successfully'});
+                resp.cookie('jwt', token, {
+                    httpOnly: true, 
+                    maxAge: maxAge * 1000, 
+                    secure: true, // set to true if your using https`
+                    sameSite: "none",
+                });// Set the cookie
+                resp.status(200).json({ message: 'User logged in successfully' });
             }else{
                 throw new Error('Invalid password');
             }
