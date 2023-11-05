@@ -1,5 +1,5 @@
 const pool = require('../../Config');
-const queries = require('../../Queries');
+const queries = require('../../Queries/Users');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
