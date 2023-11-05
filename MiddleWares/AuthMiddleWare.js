@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../Config');
-const queries = require('../Queries');
+const queries = require('../Queries/Users');
 
 module.exports.verifyUser = (req, resp, next) => {
     try {
