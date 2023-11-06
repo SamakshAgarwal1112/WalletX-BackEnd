@@ -11,4 +11,6 @@ router.post('/login', AuthController.logIn);
 router.get('/logout', AuthController.logOut);
 //Item Routes
 router.post('/watchlist', ItemController.addToWatchList);
+router.get('/watchlist', verifyUser, ItemController.fetchWatchList);
+router.delete('/watchlist/:asset_id', ItemController.removeAsset);
 module.exports = router;
